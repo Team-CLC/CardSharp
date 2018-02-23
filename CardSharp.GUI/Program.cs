@@ -65,19 +65,17 @@ namespace CardSharp.GUI
                 var list = new Card[cards.Length];
                 Array.Copy(cards, 0, list, 0, 54);
                 list.Shuffle(i);
+                Array.Sort(list, 0, 17);
+                Array.Sort(list, 17, 17); // 区间排序
+                Array.Sort(list, 34, 20); // 区间排序
 
                 var doubleKing = false;
                 int ptr = 0, cnt = 0;
                 for (var r = 1; r <= 3; r++)
                 {
-                    var rightPtr = r * 17; // 本玩家ptr循环到的位置
-                    var nCards = 17; // 本玩家的卡数
-                    if (r == 3) // 地主给第三个玩家
-                    {
-                        nCards = 20;
-                        rightPtr += 3;
-                    }
-                    Array.Sort(list, ptr, nCards); // 区间排序
+                    var rightPtr = r * 17; // 本玩家ptr循环到
+                    if (r == 3) // 地主给第三个玩
+                        rightPtr = 54;
                     
                     int prev = -1, lcnt = 0, lcnt2 = 0;
                     for (;ptr < rightPtr; ptr++)
