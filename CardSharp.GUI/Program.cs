@@ -48,87 +48,70 @@ namespace CardSharp.GUI
 
         static volatile int total = 0;
         static volatile int valid = 0;
+        static readonly object _flock = new object();
         private static void SeedGen()
         {
-            var cards = Desk.GenerateCards();
+            var cards = Desk.GenerateCards().ToArray();
 
             File.Delete("seeds.txt");
+            var outs = new BufferedStream(File.OpenWrite("seeds.txt"));
             ThreadPool.SetMinThreads(16, 16);
             ThreadPool.SetMaxThreads(64, 64);
             var startTime = DateTime.Now;
             
-            Parallel.For(0, int.MaxValue, new ParallelOptions { MaxDegreeOfParallelism = 64 }, i =>
+            Parallel.For(int.MinValue, int.MaxValue, new ParallelOptions { MaxDegreeOfParallelism = 64 }, i =>
             {
                 total++;
-                var list = new List<Card>(cards);
+                var list = new Card[cards.Length];
+                Array.Copy(cards, 0, list, 0, 54);
                 list.Shuffle(i);
 
-                var cards1 = list.Take(17).ToListAndSort();
-                var pCard1 = cards1.ExtractCardGroups();
-                var cards2 = list.Skip(17).Take(17).ToListAndSort();
-                var pCard2 = cards2.ExtractCardGroups();
-                var cards3 = list.Skip(17 * 2).Take(17).ToListAndSort();
-                var pCard3 = cards3.ExtractCardGroups();
-                var count = 0;
-                var doubleKingCount = 0;
                 var doubleKing = false;
-                foreach (var cardGroup in pCard1)
+                int ptr = 0, cnt = 0;
+                for (var r = 1; r <= 3; r++)
                 {
-                    if (cardGroup.Count == 4)
+                    var nCards = 17;
+                    if (r == 3) nCards = 20;
+                    var lcds = new Card[nCards];
+                    Array.Copy(list, ptr, lcds, 0, nCards);
+                    ptr += nCards;
+                    Array.Sort(lcds);
+                    
+                    int prev = -1, lcnt = 0, lcnt2 = 0;
+                    for (var x = 0;x < nCards; x++)
                     {
-                        count++;
+                        var c = lcds[x];
+                        var amount = c.Amount.Amount;
+                        if (amount == prev)
+                            lcnt++;
+                        else
+                            lcnt = 0;
+                        if (lcnt == 3)
+                            cnt++;
+                        if (c.Type == CardType.King)
+                            lcnt2++;
+                        prev = amount;
                     }
+
+                    if (lcnt2 == 2) doubleKing = true;
                 }
 
-                foreach (var cardGroup in pCard2) {
-                    if (cardGroup.Count == 4) {
-                        count++;
-                    }
-                }
-
-                foreach (var cardGroup in pCard3) {
-                    if (cardGroup.Count == 4) {
-                        count++;
-                    }
-                }
-
-                foreach (var card in cards1)
-                    if (card.Type == CardType.King)
-                        doubleKingCount++;
-                if (doubleKingCount == 2)
-                {
-                    doubleKing = true;
-                    goto x;
-                }
-
-                doubleKingCount = 0;
-                foreach (var card in cards2)
-                    if (card.Type == CardType.King)
-                        doubleKingCount++;
-                if (doubleKingCount == 2)
-                {
-                    doubleKing = true;
-                    goto x;
-                }
+                if (cnt <= 4) return;
+                valid++;
                 
-                doubleKingCount = 0;
-                foreach (var card in cards3)
-                    if (card.Type == CardType.King)
-                        doubleKingCount++;
-                if (doubleKingCount == 2)
-                    doubleKing = true;
-
-                x:
-                if (count > 5)
+                var t = (DateTime.Now - startTime).TotalMilliseconds;
+                var str = $"Bomb count: {cnt}, seed {i} , doubleKing {doubleKing}, TotalCount {total}, validCount{valid}, time {t/60}s, totalSpeed {total / t}/ms, validS {valid / t * 1000 * 60}/min\r\n";
+                var bts = Encoding.UTF8.GetBytes(str);
+                lock (_flock)
                 {
-                    valid++;
-                    Console.ForegroundColor = doubleKing ? ConsoleColor.Yellow : ConsoleColor.White;
-                    var t = (DateTime.Now - startTime).TotalMilliseconds;
-                    var str = $"Bomb count: {count}, seed {i} , doubleKing {doubleKing}, TotalCount {total}, validCount{valid}, time {t/60}s, totalSpeed {total / t}/ms, validS {valid / t * 1000 * 60}/min\r\n";
-                    File.AppendAllText("seeds.txt", str);
-                    Console.Write(str);
+                    outs.WriteAsync(bts, 0, bts.Length);
                 }
+
+                if (cnt <= 5) return;
+                Console.ForegroundColor = doubleKing ? ConsoleColor.Yellow : ConsoleColor.White;
+                Console.Write(str);
             });
+            outs.Close();
         }
 
         private static int _count;
