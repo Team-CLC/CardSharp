@@ -59,7 +59,7 @@ namespace CardSharp.GUI
             ThreadPool.SetMaxThreads(64, 64);
             var startTime = DateTime.Now;
             
-            Parallel.For(int.MinValue, int.MaxValue, new ParallelOptions { MaxDegreeOfParallelism = 64 }, i =>
+            Parallel.For(int.MinValue, int.MaxValue, new ParallelOptions { MaxDegreeOfParallelism = 1 }, i =>
             {
                 total++;
                 var list = new Card[cards.Length];
@@ -70,17 +70,19 @@ namespace CardSharp.GUI
                 int ptr = 0, cnt = 0;
                 for (var r = 1; r <= 3; r++)
                 {
-                    var nCards = 17;
-                    if (r == 3) nCards = 20;
-                    var lcds = new Card[nCards];
-                    Array.Copy(list, ptr, lcds, 0, nCards);
-                    ptr += nCards;
-                    Array.Sort(lcds);
+                    var rightPtr = r * 17; // 本玩家ptr循环到的位置
+                    var nCards = 17; // 本玩家的卡数
+                    if (r == 3) // 地主给第三个玩家
+                    {
+                        nCards = 20;
+                        rightPtr += 3;
+                    }
+                    Array.Sort(list, ptr, nCards); // 区间排序
                     
                     int prev = -1, lcnt = 0, lcnt2 = 0;
-                    for (var x = 0;x < nCards; x++)
+                    for (;ptr < rightPtr; ptr++)
                     {
-                        var c = lcds[x];
+                        var c = list[ptr];
                         var amount = c.Amount.Amount;
                         if (amount == prev)
                             lcnt++;
