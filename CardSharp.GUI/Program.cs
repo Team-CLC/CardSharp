@@ -46,8 +46,8 @@ namespace CardSharp.GUI
             }
         }
 
-        static volatile int total = 0;
-        static volatile int valid = 0;
+        static volatile uint total = 0;
+        static volatile uint valid = 0;
         static readonly object _flock = new object();
         private static void SeedGen()
         {
@@ -96,18 +96,19 @@ namespace CardSharp.GUI
                     if (lcnt2 == 2) doubleKing = true;
                 }
 
-                if (cnt <= 4) return;
+                if (cnt <= 5) return;
                 valid++;
                 
                 var t = (DateTime.Now - startTime).TotalMilliseconds;
-                var str = $"Bomb count: {cnt}, seed {i} , doubleKing {doubleKing}, TotalCount {total}, validCount{valid}, time {t/60}s, totalSpeed {total / t}/ms, validS {valid / t * 1000 * 60}/min\r\n";
-                var bts = Encoding.UTF8.GetBytes(str);
+                var str = $"Bomb count: {cnt}, seed {i} , doubleKing {doubleKing}, TotalCount {total}, validCount {valid}, time {t/60}s, totalSpeed {total / t}/ms, validS {valid / t * 1000 * 60}/min\r\n";
+                var str2 = $"{i} {cnt} {doubleKing} {t/60} {total/t} {valid/t*1000*60}";
+                var bts = Encoding.UTF8.GetBytes(str2);
                 lock (_flock)
                 {
                     outs.WriteAsync(bts, 0, bts.Length);
                 }
 
-                if (cnt <= 5) return;
+                if (cnt <= 6) return;
                 Console.ForegroundColor = doubleKing ? ConsoleColor.Yellow : ConsoleColor.White;
                 Console.Write(str);
             });
