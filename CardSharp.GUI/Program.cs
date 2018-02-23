@@ -100,8 +100,8 @@ namespace CardSharp.GUI
                 valid++;
                 
                 var t = (DateTime.Now - startTime).TotalMilliseconds;
-                var str = $"Bomb count: {cnt}, seed {i} , doubleKing {doubleKing}, TotalCount {total}, validCount {valid}, time {t/60}s, totalSpeed {total / t}/ms, validS {valid / t * 1000 * 60}/min\r\n";
-                var str2 = $"{i} {cnt} {doubleKing} {t/60} {total/t} {valid/t*1000*60}";
+                var str = $"Bomb count: {cnt}, seed {i} , doubleKing {doubleKing}, TotalCount {total}, validCount {valid}, time {t/1000}s, totalSpeed {total / t}/ms, validS {valid / t * 1000 * 60}/min\r\n";
+                var str2 = $"{i} {cnt} {doubleKing} {t/1000} {total/t} {valid/t*1000*60}\r\n";
                 var bts = Encoding.UTF8.GetBytes(str2);
                 lock (_flock)
                 {
