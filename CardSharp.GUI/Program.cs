@@ -58,11 +58,11 @@ namespace CardSharp.GUI
             ThreadPool.SetMinThreads(16, 16);
             ThreadPool.SetMaxThreads(64, 64);
             var startTime = DateTime.Now;
-            
-            Parallel.For(int.MinValue, int.MaxValue, new ParallelOptions { MaxDegreeOfParallelism = 1 }, i =>
+            ThreadLocal<Card[]> lists = new ThreadLocal<Card[]>(() => new Card[54]);
+            Parallel.For(-1006413805, int.MaxValue, new ParallelOptions { MaxDegreeOfParallelism = 64 }, i =>
             {
                 total++;
-                var list = new Card[cards.Length];
+                var list = lists.Value;
                 Array.Copy(cards, 0, list, 0, 54);
                 list.Shuffle(i);
                 Array.Sort(list, 0, 17);
