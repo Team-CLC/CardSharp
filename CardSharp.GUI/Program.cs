@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,7 +18,9 @@ namespace CardSharp.GUI
         {
 
 
-            while (true) {
+            while (true)
+            {
+                Console.ForegroundColor = ConsoleColor.White;
                 Console.WriteLine("-CardSharp v0 Test Menu-");
                 Console.WriteLine();
                 Console.WriteLine("1.Play a round");
@@ -59,26 +62,45 @@ namespace CardSharp.GUI
             ThreadPool.SetMaxThreads(64, 64);
             var startTime = DateTime.Now;
             ThreadLocal<Card[]> lists = new ThreadLocal<Card[]>(() => new Card[54]);
-            Parallel.For(int.MinValue, int.MaxValue, new ParallelOptions { MaxDegreeOfParallelism = 64 }, i =>
+            var rightPtrs1 = new[] { 17, 34, 54 };
+            var rightPtrs2 = new[] { 17, 37, 54 };
+            var rightPtrs3 = new[] { 20, 37, 54 };
+            Parallel.For(0, int.MaxValue, new ParallelOptions { MaxDegreeOfParallelism = 64 }, i =>
             {
                 total++;
                 var list = lists.Value;
                 Array.Copy(cards, 0, list, 0, 54);
                 list.Shuffle(i);
                 Array.Sort(list, 0, 17);
-                Array.Sort(list, 17, 17); // 区间排序
-                Array.Sort(list, 34, 20); // 区间排序
+                Array.Sort(list, 17, 17);
+                Array.Sort(list, 34, 20);
+                ProcessCards(list, rightPtrs1, i, 1);
 
+                list.Shuffle(i);
+                Array.Sort(list, 0, 17);
+                Array.Sort(list, 17, 20);
+                Array.Sort(list, 37, 17);
+                ProcessCards(list, rightPtrs2, i, 2);
+
+                list.Shuffle(i);
+                Array.Sort(list, 0, 20);
+                Array.Sort(list, 20, 17);
+                Array.Sort(list, 37, 17);
+                ProcessCards(list, rightPtrs3, i, 3);
+            });
+            outs.Close();
+
+            //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+            void ProcessCards(Card[] list, int[] rightPtrs, int i, int extra)
+            {
                 var doubleKing = false;
                 int ptr = 0, cnt = 0;
-                for (var r = 1; r <= 3; r++)
+                for (var r = 0; r <= 2; r++)
                 {
-                    var rightPtr = r * 17; // 本玩家ptr循环到
-                    if (r == 3) // 地主给第三个玩
-                        rightPtr = 54;
-                    
+                    var rightPtr = rightPtrs[r];
+
                     int prev = -1, lcnt = 0, lcnt2 = 0;
-                    for (;ptr < rightPtr; ptr++)
+                    for (; ptr < rightPtr; ptr++)
                     {
                         var c = list[ptr];
                         var amount = c.Amount.Amount;
@@ -96,23 +118,21 @@ namespace CardSharp.GUI
                     if (lcnt2 == 2) doubleKing = true;
                 }
 
-                if (cnt <= 5) return;
+                if (cnt <= 6) return;
                 valid++;
-                
+
                 var t = (DateTime.Now - startTime).TotalMilliseconds;
-                var str = $"Bomb count: {cnt}, seed {i} , doubleKing {doubleKing}, TotalCount {total}, validCount {valid}, time {t/1000}s, totalSpeed {total / t}/ms, validS {valid / t * 1000 * 60}/min\r\n";
-                var str2 = $"{i} {cnt} {doubleKing} {t/1000} {total/t} {valid/t*1000*60}\r\n";
+                var str =
+                    $"Bomb count: {cnt}, seed {i} , doubleKing {doubleKing}, TotalCount {total}, validCount {valid}, time {t / 1000}s, totalSpeed {total / t}/ms, validS {valid / t * 1000 * 60}/min {extra}\r\n";
+                var str2 = $"{i} {cnt} {doubleKing} {t / 1000} {extra}\r\n";
                 var bts = Encoding.UTF8.GetBytes(str2);
                 lock (_flock)
                 {
                     outs.WriteAsync(bts, 0, bts.Length);
                 }
-
-                if (cnt <= 6) return;
                 Console.ForegroundColor = doubleKing ? ConsoleColor.Yellow : ConsoleColor.White;
                 Console.Write(str);
-            });
-            outs.Close();
+            }
         }
 
         private static int _count;
