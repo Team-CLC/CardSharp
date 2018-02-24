@@ -59,7 +59,7 @@ namespace CardSharp.GUI
             ThreadPool.SetMaxThreads(64, 64);
             var startTime = DateTime.Now;
             ThreadLocal<Card[]> lists = new ThreadLocal<Card[]>(() => new Card[54]);
-            Parallel.For(-1006413805, int.MaxValue, new ParallelOptions { MaxDegreeOfParallelism = 64 }, i =>
+            Parallel.For(int.MinValue, int.MaxValue, new ParallelOptions { MaxDegreeOfParallelism = 64 }, i =>
             {
                 total++;
                 var list = lists.Value;
