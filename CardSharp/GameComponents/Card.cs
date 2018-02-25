@@ -18,7 +18,8 @@ namespace CardSharp
 
         public int CompareTo(Card other)
         {
-            return ((int) Amount).CompareTo(other.Amount);
+            return Amount.Amount.CompareTo(other.Amount.Amount);
+            //return ((int) Amount).CompareTo(other.Amount);
         }
 
         public bool Equals(Card other)
@@ -73,7 +74,7 @@ namespace CardSharp
                     break;
             }
 
-            return null;
+            throw new ArgumentException();
         }
 
         public static bool operator ==(Card card1, Card card2)

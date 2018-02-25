@@ -62,60 +62,57 @@ namespace CardSharp.GUI
             ThreadPool.SetMaxThreads(64, 64);
             var startTime = DateTime.Now;
             ThreadLocal<Card[]> lists = new ThreadLocal<Card[]>(() => new Card[54]);
-            var rightPtrs1 = new[] { 17, 34, 54 };
-            var rightPtrs2 = new[] { 17, 37, 54 };
-            var rightPtrs3 = new[] { 20, 37, 54 };
+            ThreadLocal<int[]> bufs = new ThreadLocal<int[]>(() => new int[15]);
             Parallel.For(0, int.MaxValue, new ParallelOptions { MaxDegreeOfParallelism = 64 }, i =>
             {
                 total++;
                 var list = lists.Value;
+                var buf = bufs.Value;
                 Array.Copy(cards, 0, list, 0, 54);
                 list.Shuffle(i);
-                Array.Sort(list, 0, 17);
-                Array.Sort(list, 17, 17);
-                Array.Sort(list, 34, 20);
-                ProcessCards(list, rightPtrs1, i, 1);
-
-                list.Shuffle(i);
-                Array.Sort(list, 0, 17);
-                Array.Sort(list, 17, 20);
-                Array.Sort(list, 37, 17);
-                ProcessCards(list, rightPtrs2, i, 2);
-
-                list.Shuffle(i);
-                Array.Sort(list, 0, 20);
-                Array.Sort(list, 20, 17);
-                Array.Sort(list, 37, 17);
-                ProcessCards(list, rightPtrs3, i, 3);
+                
+                ProcessCards(list, buf, i, 1);
+                for (int a = 0; a < 17; a++)
+                {
+                    var tmp = list[a];
+                    list[a] = list[a + 34];
+                    list[a + 34] = tmp;
+                }
+                ProcessCards(list, buf, i, 2);
+                for (int a = 17; a < 34; a++)
+                {
+                    var tmp = list[a];
+                    list[a] = list[a + 17];
+                    list[a + 17] = tmp;
+                }
+                ProcessCards(list, buf, i, 3);
             });
             outs.Close();
 
             //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-            void ProcessCards(Card[] list, int[] rightPtrs, int i, int extra)
+            void ProcessCards(Card[] list, int[] buf, int i, int extra)
             {
                 var doubleKing = false;
                 int ptr = 0, cnt = 0;
-                for (var r = 0; r <= 2; r++)
+                for (var r = 1; r <= 3; r++)
                 {
-                    var rightPtr = rightPtrs[r];
+                    int rightPtr = r * 17;
+                    if (r == 3) rightPtr = 54;
 
-                    int prev = -1, lcnt = 0, lcnt2 = 0;
+                    int lcnt2 = 0;
                     for (; ptr < rightPtr; ptr++)
                     {
                         var c = list[ptr];
                         var amount = c.Amount.Amount;
-                        if (amount == prev)
-                            lcnt++;
-                        else
-                            lcnt = 0;
-                        if (lcnt == 3)
+                        buf[amount]++;
+                        if (buf[amount] == 4)
                             cnt++;
                         if (c.Type == CardType.King)
                             lcnt2++;
-                        prev = amount;
                     }
 
                     if (lcnt2 == 2) doubleKing = true;
+                    for (var a = 0; a < 15; a++) buf[a] = 0;
                 }
 
                 if (cnt <= 6) return;
